@@ -23,7 +23,7 @@ Usage:
 	config := Config{
 		Timeout:    TIMEOUT_DEFAULT,
 		Port:       (PORT_MIN - 1)}
-	err := tools_config.LoadJson(configFileName, &config)
+	err := jsonconfig.LoadJson(configFileName, &config)
 
 Note dont forget the '&' on the config parameter.
 
