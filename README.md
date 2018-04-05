@@ -1,4 +1,4 @@
-# tools-config
+# tools-jsonconfig
 
 Load and object from a JSON configuration file.
 
