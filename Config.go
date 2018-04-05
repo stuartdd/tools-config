@@ -2,49 +2,65 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 )
 
-type ConfigInterface interface {
+type ValidateInterface interface {
 	Validate(filename string) error
 }
 
-func LoadJsonRequired(filename string, configObject ConfigInterface, errorCode int) error {
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "File: [%s]. Error: %s\n", filename, err)
-		os.Exit(errorCode)
-	}
-	err = json.Unmarshal(content, configObject)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Json content could not be parsed for file: [%s]. Error: %s\n", filename, err)
-		os.Exit(errorCode)
-	}
-	path, _ := filepath.Abs(filename)
-	return configObject.Validate(path)
-}
+/*
+Load and object from a JSON configuration file
 
-func LoadJson(filename string, m interface{}) error {
+This process is very forgiving. If the JSON is valid the response err will be null.
+
+If there are no matching properties then the config data will be unchanged!
+
+If your config object implements 'Validate(filename string) error' then it will be called.
+
+Usage:
+	config := Config{
+		Timeout:    TIMEOUT_DEFAULT,
+		Port:       (PORT_MIN - 1)}
+	err := tools_config.LoadJson(configFileName, &config)
+
+Note dont forget the '&' on the config parameter.
+
+*/
+func LoadJson(filename string, configObject interface{}) error {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(content, m)
+
+	err = json.Unmarshal(content, configObject)
+	if err != nil {
+		return err
+	}
+
+	configObjectValidate, ok := configObject.(ValidateInterface)
+	if ok {
+		path, err := filepath.Abs(filename)
+		if err != nil {
+			return err
+		}
+		err = configObjectValidate.Validate(path)
+		return err
+	}
+	return nil
 }
 
-func StoreJson(filename string, m interface{}) error {
-	s, err := json.Marshal(m)
+func StoreJson(filename string, configObject interface{}) error {
+	s, err := json.Marshal(configObject)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(filename, s, 0777)
 }
 
-func StringJson(m interface{}) (string, error) {
-	s, err := json.Marshal(m)
+func StringJson(configObject interface{}) (string, error) {
+	s, err := json.Marshal(configObject)
 	if err != nil {
 		return "", err
 	}
